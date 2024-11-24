@@ -53,6 +53,42 @@ public class Dashboard {
                 new ClassListScreen();  // Create and show the Class List screen
             }
         });
+        JButton professorListScreen = new JButton("Go to Professor");
+        professorListScreen.setBounds(150, 250, 150, 40);
+        frame.add(professorListScreen);
+
+// Action listener for the "Go to Professor" button
+        professorListScreen.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Close the current window (Dashboard)
+                frame.dispose();
+
+                // Open the Professor List screen
+                SwingUtilities.invokeLater(() -> {
+                    ProfessorListScreen professorScreen = new ProfessorListScreen();
+                   // professorScreen.setVisible(true); // Make sure the frame is visible
+                });
+            }
+        });
+        JButton ClassroomsScreen = new JButton("Assign Classrooms");
+        ClassroomsScreen.setBounds(350, 350, 150, 40);
+        frame.add(ClassroomsScreen);
+
+// Action listener for the "Go to Professor" button
+        ClassroomsScreen.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Close the current window (Dashboard)
+                frame.dispose();
+
+                // Open the Professor List screen
+                SwingUtilities.invokeLater(() -> {
+                    ClassTracker ps = new ClassTracker();
+                    ps.setVisible(true); // Make sure the frame is visible
+                });
+            }
+        });
         // Set layout to null to manage positioning manually
         frame.setLayout(null);
 

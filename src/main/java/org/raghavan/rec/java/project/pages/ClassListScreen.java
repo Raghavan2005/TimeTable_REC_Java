@@ -2,7 +2,6 @@ package org.raghavan.rec.java.project.pages;
 
 import org.raghavan.rec.java.project.DatabaseConnection;
 
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -38,14 +37,13 @@ public class ClassListScreen {
         JButton addButton = new JButton("Add Class");
         JButton removeButton = new JButton("Remove Class");
         JButton editButton = new JButton("Edit Class");
-        JButton backButton = new JButton("Back");
+
         JButton dashboardButton = new JButton("Dashboard");
 
         buttonPanel.add(addButton);
         buttonPanel.add(removeButton);
         buttonPanel.add(editButton);
-        buttonPanel.add(backButton);
-        buttonPanel.add(dashboardButton);  // Add Dashboard button
+        buttonPanel.add(dashboardButton);
 
         // Add button panel to the frame
         frame.add(buttonPanel, BorderLayout.SOUTH);
@@ -54,16 +52,38 @@ public class ClassListScreen {
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Add a new class via input dialogs
-                String className = JOptionPane.showInputDialog(frame, "Enter Class Name:");
-                if (className != null && !className.trim().isEmpty()) {
-                    String inchargeName = JOptionPane.showInputDialog(frame, "Enter Class Incharge Name:");
-                    if (inchargeName != null && !inchargeName.trim().isEmpty()) {
-                        String totalStudentsStr = JOptionPane.showInputDialog(frame, "Enter Total Students:");
-                        if (totalStudentsStr != null && !totalStudentsStr.trim().isEmpty()) {
+                // Create a panel with fields for class input
+                JPanel panel = new JPanel(new GridLayout(0, 1));
+                JTextField classNameField = new JTextField();
+                JComboBox<String> inchargeDropdown = new JComboBox<>(getInchargeNames()); // Dropdown for incharge names
+                JTextField totalStudentsField = new JTextField();
+
+                // Add fields to the panel
+                panel.add(new JLabel("Class Name:"));
+                panel.add(classNameField);
+                panel.add(new JLabel("Class Incharge:"));
+                panel.add(inchargeDropdown);
+                panel.add(new JLabel("Total Students:"));
+                panel.add(totalStudentsField);
+
+                // Show the dialog
+                int result = JOptionPane.showConfirmDialog(frame, panel, "Add New Class", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+                if (result == JOptionPane.OK_OPTION) {
+                    // Fetch and validate inputs
+                    String className = classNameField.getText().trim();
+                    String inchargeName = (String) inchargeDropdown.getSelectedItem();
+                    String totalStudentsStr = totalStudentsField.getText().trim();
+
+                    if (!className.isEmpty() && !totalStudentsStr.isEmpty()) {
+                        try {
                             int totalStudents = Integer.parseInt(totalStudentsStr);
-                            addClass(className, inchargeName, totalStudents);
+                            addClass(className, inchargeName, totalStudents); // Add class to database
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(frame, "Total Students must be a valid number.");
                         }
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "All fields are required.");
                     }
                 }
             }
@@ -94,27 +114,39 @@ public class ClassListScreen {
                     String inchargeName = (String) tableModel.getValueAt(selectedRow, 2);
                     int totalStudents = (int) tableModel.getValueAt(selectedRow, 3);
 
-                    // Create a panel with input fields for editing
+                    // Create input fields
                     JTextField classNameField = new JTextField(className);
-                    JTextField inchargeNameField = new JTextField(inchargeName);
+                    JComboBox<String> inchargeDropdown = new JComboBox<>(getInchargeNames());
                     JTextField totalStudentsField = new JTextField(String.valueOf(totalStudents));
 
+                    // Pre-select the current incharge name in the dropdown
+                    inchargeDropdown.setSelectedItem(inchargeName);
+
+                    // Create panel and add input fields
                     JPanel panel = new JPanel(new GridLayout(0, 1));
                     panel.add(new JLabel("Class Name:"));
                     panel.add(classNameField);
                     panel.add(new JLabel("Incharge Name:"));
-                    panel.add(inchargeNameField);
+                    panel.add(inchargeDropdown);
                     panel.add(new JLabel("Total Students:"));
                     panel.add(totalStudentsField);
 
                     int option = JOptionPane.showConfirmDialog(frame, panel, "Edit Class", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
                     if (option == JOptionPane.OK_OPTION) {
-                        String newClassName = classNameField.getText();
-                        String newInchargeName = inchargeNameField.getText();
-                        int newTotalStudents = Integer.parseInt(totalStudentsField.getText());
+                        try {
+                            String newClassName = classNameField.getText().trim();
+                            String newInchargeName = (String) inchargeDropdown.getSelectedItem();
+                            int newTotalStudents = Integer.parseInt(totalStudentsField.getText().trim());
 
-                        updateClass(classId, newClassName, newInchargeName, newTotalStudents);
+                            if (!newClassName.isEmpty() && newInchargeName != null) {
+                                updateClass(classId, newClassName, newInchargeName, newTotalStudents);
+                            } else {
+                                JOptionPane.showMessageDialog(frame, "All fields are required.");
+                            }
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(frame, "Total Students must be a valid number.");
+                        }
                     }
                 } else {
                     JOptionPane.showMessageDialog(frame, "Please select a class to edit.");
@@ -122,21 +154,11 @@ public class ClassListScreen {
             }
         });
 
-        // Action listener for Back button
-        backButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Close the current window (ClassListScreen) and go back to the previous screen
-                frame.dispose();  // Close the current window (ClassListScreen)
-                new Dashboard();  // Open the Dashboard window again
-            }
-        });
 
         // Action listener for Dashboard button
         dashboardButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Close the current window (ClassListScreen) and go to the Dashboard window
                 frame.dispose();  // Close the current window (ClassListScreen)
                 new Dashboard();  // Open the Dashboard window
             }
@@ -176,13 +198,16 @@ public class ClassListScreen {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
 
-            pstmt.setString(1, className);
-            pstmt.setString(2, inchargeName);
-            pstmt.setInt(3, totalStudents);
+            pstmt.setString(1, className); // Set the class name
+            pstmt.setString(2, inchargeName); // Set the selected incharge name from the dropdown
+            pstmt.setInt(3, totalStudents); // Set the total students count
             pstmt.executeUpdate();
 
-            // Reload the class data after insertion
+            // Reload the class data after insertion to reflect changes in the table
             loadClassData();
+
+            // Confirmation message
+            JOptionPane.showMessageDialog(null, "Class added successfully!");
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "Error adding class: " + e.getMessage());
@@ -226,7 +251,21 @@ public class ClassListScreen {
         }
     }
 
-    public static void main(String[] args) {
-        new ClassListScreen();
+    // Fetch distinct incharge names from the database
+    private String[] getInchargeNames() {
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT DISTINCT name FROM professors")) {
+
+            java.util.List<String> inchargeList = new java.util.ArrayList<>();
+            while (rs.next()) {
+                inchargeList.add(rs.getString("name"));
+            }
+            return inchargeList.toArray(new String[0]);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error fetching incharge names: " + e.getMessage());
+            return new String[0];
+        }
     }
 }
